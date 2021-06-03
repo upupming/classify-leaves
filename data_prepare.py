@@ -12,10 +12,10 @@ import random
 
 from torchvision.transforms.transforms import Resize
 
-def train_val_split(data_len,val_radio=0.1):
+def train_val_split(data_len,val_ratio=0.1):
     all_idxs=list(range(0,data_len))
     random.shuffle(all_idxs)
-    train_num=int(data_len-val_radio*data_len)
+    train_num=int(data_len-val_ratio*data_len)
     return all_idxs[0:train_num],all_idxs[train_num:]    
 
 
@@ -44,7 +44,7 @@ class LeavesData(Dataset):
             self.label_arr = np.asarray(self.data_info.iloc[0:, 1])
             self.init_info()
         elif mode == 'test':
-            self.image_arr = np.asarray(self.data_info.iloc[1:, 0])
+            self.image_arr = np.asarray(self.data_info.iloc[0:, 0])
             
         self.real_len = len(self.image_arr)
         print('Finished reading the {} set of Leaves Dataset ({} samples found)'
@@ -120,7 +120,7 @@ def getData(args,mode='train'):
     ])
     all_data=LeavesData(args.data_root,mode)
     if mode=='train':
-        train_idxs,val_idxs=train_val_split(len(all_data))
+        train_idxs,val_idxs=train_val_split(len(all_data),args.val_ratio)
         train_data=SplitDataset(all_data,train_idxs,train_transform)
         val_data=SplitDataset(all_data,val_idxs,val_transform)
         return train_data,val_data
@@ -130,9 +130,6 @@ def getData(args,mode='train'):
 
 
 if __name__=="__main__":
-    train_data=LeavesData('../dataset/classify-leaves',"test")
-    train_idxs,test_idxs=train_val_split(len(train_data))
-    print(len(train_idxs))
-    print(len(test_idxs))
-    print(len(train_data))
-        
+    test_data=LeavesData('../dataset/classify-leaves',"test")
+    for idx,img in enumerate(test_data):
+        print(img.width)
