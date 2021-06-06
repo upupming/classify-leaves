@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
 import os
+from os import path
 import matplotlib.pyplot as plt
 import random
 
@@ -16,15 +17,15 @@ def train_val_split(data_len,val_ratio=0.1):
     all_idxs=list(range(0,data_len))
     random.shuffle(all_idxs)
     train_num=int(data_len-val_ratio*data_len)
-    return all_idxs[0:train_num],all_idxs[train_num:]    
+    return all_idxs[0:train_num],all_idxs[train_num:]
 
 
 # 继承pytorch的dataset，创建自己的dataset
 class LeavesData(Dataset):
-    def __init__(self, data_root, mode='train'):
+    def __init__(self, data_root=path.join(path.dirname(__file__), '../dataset/classify-leaves'), mode='train'):
         """
         Args:
-            data_root (string): 数据集的根目录 
+            data_root (string): 数据集的根目录
             mode (string): 训练模式还是测试模式
         """
         self.data_root=data_root
@@ -36,7 +37,7 @@ class LeavesData(Dataset):
         self.data_info = pd.read_csv(csv_path)  #header=None是去掉表头部分
         # 计算 length
         self.data_len = len(self.data_info.index)
-        
+
         if mode == 'train':
             # 第一列包含图像文件的名称
             self.image_arr = np.asarray(self.data_info.iloc[0:, 0])  #self.data_info.iloc[1:,0]表示读取第一列，从第二行开始到train_len
@@ -45,7 +46,7 @@ class LeavesData(Dataset):
             self.init_info()
         elif mode == 'test':
             self.image_arr = np.asarray(self.data_info.iloc[0:, 0])
-            
+
         self.real_len = len(self.image_arr)
         print('Finished reading the {} set of Leaves Dataset ({} samples found)'
               .format(mode, self.real_len))
@@ -61,7 +62,7 @@ class LeavesData(Dataset):
         single_image_name = self.image_arr[index]
 
         # 读取图像文件
-        img_as_img = Image.open(os.path.join(self.data_root, single_image_name))        
+        img_as_img = Image.open(os.path.join(self.data_root, single_image_name))
         if self.mode == 'test':
             return img_as_img
         else:
@@ -79,14 +80,14 @@ class SplitDataset(Dataset):
         self.raw_data=leaves_data
         self.idxs=idxs
         self.trans=trans
-    
+
     def __getitem__(self, index: int):
         real_idx=self.idxs[index]
         img,label=self.raw_data[real_idx]
         if self.trans is not None:
             img=self.trans(img)
         return img,label
-    
+
     def __len__(self) -> int:
         return len(self.idxs)
 
@@ -95,10 +96,10 @@ class TestDataset(Dataset):
     def __init__(self,leaves_data:LeavesData,trans=None) -> None:
         self.raw_data=leaves_data
         self.trans=trans
-    
+
     def __len__(self) -> int:
         return len(self.raw_data)
-    
+
     def __getitem__(self, index: int):
         img,label=self.raw_data[index]
         if self.trans is not None:
@@ -130,6 +131,6 @@ def getData(args,mode='train'):
 
 
 if __name__=="__main__":
-    test_data=LeavesData('../dataset/classify-leaves',"test")
+    test_data=LeavesData(path.join(path.dirname(__file__), '../dataset/classify-leaves'),"test")
     for idx,img in enumerate(test_data):
         print(img.width)
