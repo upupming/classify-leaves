@@ -15,7 +15,7 @@ def getArgs():
                             default=64, help="The batch size")
     arg_parser.add_argument("--verbose", action="store_true",
                             help="output the verbose information")
-    arg_parser.add_argument("--model", type=str,
+    arg_parser.add_argument("--model", type=str, default='seresnext101',
                             help="choose the type of network")
     arg_parser.add_argument("--freeze", action="store_true",
                             help="freeze the former layers or not")

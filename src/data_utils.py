@@ -31,22 +31,24 @@ class LeavesData(Dataset):
         """
         self.data_root = data_root
         csv_path = os.path.join(data_root, mode + '.csv')
+        train_csv_path = os.path.join(data_root, 'train.csv')
         self.mode = mode
         self.transform = transform
 
         # 读取 csv 文件
         # 利用pandas读取csv文件
         self.data_info = pd.read_csv(csv_path)  # header=None是去掉表头部分
+        self.train_data_info = pd.read_csv(train_csv_path)
         # 计算 length
         self.data_len = len(self.data_info.index)
 
+        self.init_info()
         if mode == 'train':
             # 第一列包含图像文件的名称
             # self.data_info.iloc[1:,0]表示读取第一列，从第二行开始到train_len
             self.image_arr = np.asarray(self.data_info.iloc[0:, 0])
             # 第二列是图像的 label
             self.label_arr = np.asarray(self.data_info.iloc[0:, 1])
-            self.init_info()
         elif mode == 'test':
             self.image_arr = np.asarray(self.data_info.iloc[0:, 0])
 
@@ -55,7 +57,7 @@ class LeavesData(Dataset):
               .format(mode, self.real_len))
 
     def init_info(self):
-        leaves_labels = sorted(list(set(self.data_info['label'])))
+        leaves_labels = sorted(list(set(self.train_data_info['label'])))
         n_classes = len(leaves_labels)
         self.class_to_id = dict(zip(leaves_labels, range(n_classes)))
         self.id_to_class = {v: k for k, v in self.class_to_id.items()}
@@ -71,7 +73,8 @@ class LeavesData(Dataset):
         if self.transform:
             img_as_img = self.transform(img_as_img)
         if self.mode == 'test':
-            return img_as_img
+            # 返回一个图像名称方便预测生成 csv 用
+            return img_as_img, single_image_name
         else:
             # 得到图像的 string label
             label = self.label_arr[index]
@@ -110,10 +113,10 @@ class TestDataset(Dataset):
         return len(self.raw_data)
 
     def __getitem__(self, index: int):
-        img, label = self.raw_data[index]
+        img, img_name = self.raw_data[index]
         if self.trans is not None:
             img = self.trans(img)
-        return img, label
+        return img, img_name
 
 
 train_transform = transforms.Compose([
@@ -132,14 +135,15 @@ test_transform = val_transform = transforms.Compose([
 
 def getData(args, mode='train'):
 
-    all_data = LeavesData(args.data_root, mode)
+    all_data = LeavesData(
+        path.join(path.dirname(__file__), args.data_root), mode)
     if mode == 'train':
         train_idxs, val_idxs = train_val_split(len(all_data), args.val_ratio)
         train_data = SplitDataset(all_data, train_idxs, train_transform)
         val_data = SplitDataset(all_data, val_idxs, val_transform)
         return train_data, val_data
     else:
-        test_data = TestDataset(all_data, val_transform)
+        test_data = TestDataset(all_data, test_transform)
         return test_data
 
 
