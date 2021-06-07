@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/Users/upupming/anaconda3/bin/python"
+"python.envFile": "${workspaceFolder}/.env",
+"python.pythonPath": "C:\\Users\\ming\\.conda\\envs\\py3.9\\python.exe"
 }
