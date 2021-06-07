@@ -5,10 +5,19 @@ from data_utils import LeavesData, train_transform, test_transform, getData
 from pretrainedmodels import se_resnext101_32x4d
 from options import getArgs
 from d2l import torch as d2l
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.tensorboard import SummaryWriter
+from d2l import torch as d2l
+from pretrainedmodels import se_resnext101_32x4d
+from torch.nn.modules.loss import CrossEntropyLoss
+from torch.utils.data import dataloader
 from tqdm import tqdm
+
+from data_utils import LeavesData, getData, test_transform, train_transform
+from options import getArgs
 
 
 class AverageMeter(object):
@@ -96,6 +105,10 @@ class ModelUpdater():
                 if use_top5:
                     acc5 = accuracy(out, labels, topk=(5,))
                     top5.update(acc5[0].item(), imgs.size(0))
+        if not use_top5:
+            return top1.avg
+        else:
+            return top1.avg, top5.avg
 
 
 def set_parameter_requires_grad(model, feature_extracting, num_classes):
@@ -117,7 +130,13 @@ if __name__ == '__main__':
         exit(-1)
 
     set_parameter_requires_grad(model, args.freeze, num_classes)
-    print(model.last_linear.weight.requires_grad)
+    # print(model.last_linear.weight.requires_grad)
+
+    current_epoch = 0
+    if args.resume:
+        save_dict = torch.load(args.ckpt_path)
+        current_epoch = save_dict['current_epoch']
+        model.load_state_dict(save_dict['weight'])
 
     train_data, val_data = getData(args, mode='train')
     train_loader = dataloader.DataLoader(
@@ -126,15 +145,20 @@ if __name__ == '__main__':
 
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
+    schdueler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, args.epoch, 1e-5)
     model = nn.DataParallel(model)
     model = model.to(args.device)
     updater = ModelUpdater(args, train_loader, val_loader, optimizer)
 
     best_loss = 1e9
     best_weight = copy.deepcopy(model.module.state_dict())
+    writer = SummaryWriter('./logs')
     for i in range(args.epoch):
         print("Epoch {}/{} training...".format(i, args.epoch))
         loss, acc = updater.train_one_epoch(model)
+        writer.add_scalar("loss", loss, i)
+        writer.add_scalar("train_acc", acc)
         print("train loss:{} acc:{}".format(loss, acc))
         if loss < best_loss:
             best_loss = loss
@@ -148,3 +172,4 @@ if __name__ == '__main__':
         if args.eval_all:
             acc, acc5 = updater.validate(model, use_top5=True)
             print("acc:{} acc5:{}".format(acc, acc5))
+            writer.add_scalars("test_acc", {"top1": acc, "top5": acc5})

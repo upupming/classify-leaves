@@ -23,5 +23,8 @@ def getArgs():
         "--ckpt_path", type=str, default="model.pth", help="the path of the checkpoint")
     arg_parser.add_argument("--eval_all", action="store_true",
                             help="validate the model after every training epoch")
+
+    arg_parser.add_argument("--resume", action="store_true",
+                            help="continue train the model with ckpt file")
     args = arg_parser.parse_args()
     return args
