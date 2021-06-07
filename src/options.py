@@ -11,5 +11,7 @@ def getArgs():
     arg_parser.add_argument("--verbose",action="store_true",help="output the verbose information")
     arg_parser.add_argument("--model",type=str,help="choose the type of network")
     arg_parser.add_argument("--freeze",action="store_true",help="freeze the former layers or not")
+    arg_parser.add_argument("--ckpt_path",type=str,default="model.pth",help="the path of the checkpoint")
+    arg_parser.add_argument("--eval_all",action="store_true",help="validate the model after every training epoch")
     args=arg_parser.parse_args()
     return args
