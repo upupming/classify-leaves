@@ -127,6 +127,7 @@ if __name__=='__main__':
     for i in range(args.epoch):
         print("Epoch {}/{} training...".format(i,args.epoch))
         loss,acc=updater.train_one_epoch(model)
+        print("train loss:{} acc:{}".format(loss,acc))
         if loss<best_loss:
             best_loss=loss
             best_weight=copy.deepcopy(model.module.state_dict())
