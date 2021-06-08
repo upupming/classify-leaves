@@ -35,14 +35,14 @@ class ResultSaver():
                 out = model(imgs)
                 labels = out.argmax(dim=1)
                 for i in range(len(imgs)):
-                    self.ans.append({
+                    self.ans = self.ans.append({
                         'image': img_names[i],
                         'label': self.id_to_class[labels[i].item()]
                     }, ignore_index=True)
         self.ans.to_csv(
             path.join(
                 path.dirname(__file__),
-                '../dataset/classify-leaves', 'submission.csv'))
+                '../dataset/classify-leaves', 'submission.csv'), index=False)
 
 
 if __name__ == "__main__":
