@@ -29,14 +29,15 @@ class ResultSaver():
 
     def start(self):
         self.model.eval()
-        for idx, (imgs, img_names) in enumerate(tqdm(self.test_loader)):
-            imgs = imgs.to(self.args.device)
-            out = model(imgs)
-            for i in range(len(imgs)):
-                self.ans.append({
-                    'image': img_names[i],
-                    'label': self.id_to_class[out[i]]
-                })
+        with torch.no_grad():
+            for idx, (imgs, img_names) in enumerate(tqdm(self.test_loader)):
+                imgs = imgs.to(self.args.device)
+                out = model(imgs)
+                for i in range(len(imgs)):
+                    self.ans.append({
+                        'image': img_names[i],
+                        'label': self.id_to_class[out[i]]
+                    })
         self.ans.to_csv(
             path.join(
                 path.dirname(__file__),

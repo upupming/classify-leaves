@@ -1,4 +1,4 @@
 {
 "python.envFile": "${workspaceFolder}/.env",
-"python.pythonPath": "C:\\Users\\ming\\.conda\\envs\\py3.9\\python.exe"
+"python.pythonPath": "/home/xdl/miniconda3/envs/torch_env/bin/python"
 }
