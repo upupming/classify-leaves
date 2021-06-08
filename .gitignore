@@ -3,3 +3,5 @@ dataset
 *.pyc
 *.pth
 logs
+figures/*.png
+*-checkpoint.ipynb
