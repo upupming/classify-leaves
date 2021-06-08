@@ -150,7 +150,7 @@ if __name__ == '__main__':
         print("Epoch {}/{} training...".format(i, args.epoch))
         loss, acc = updater.train_one_epoch(model)
         writer.add_scalar("loss", loss, i)
-        writer.add_scalar("train_acc", acc)
+        writer.add_scalar("train_acc", acc,i)
         print("train loss:{} acc:{}".format(loss, acc))
         if loss < best_loss:
             best_loss = loss
@@ -164,4 +164,4 @@ if __name__ == '__main__':
         if args.eval_all:
             acc, acc5 = updater.validate(model, use_top5=True)
             print("acc:{} acc5:{}".format(acc, acc5))
-            writer.add_scalars("test_acc", {"top1": acc, "top5": acc5})
+            writer.add_scalars("test_acc", {"top1": acc, "top5": acc5},i)
