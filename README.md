@@ -32,6 +32,8 @@
 2. 标签平滑
 3. TTA(Test Time Augmentation)
 4. unlabeled data
+5. ensemble learning
+6. 知识蒸馏
 
 ## References
 
