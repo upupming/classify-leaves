@@ -34,6 +34,7 @@
 4. unlabeled data
 5. ensemble learning
 6. 知识蒸馏
+7. Mixup数据增强
 
 ## References
 
