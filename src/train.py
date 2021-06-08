@@ -1,3 +1,4 @@
+from os import path
 import copy
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from pretrainedmodels import se_resnext101_32x4d
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import dataloader
 from tqdm import tqdm
-
+from matplotlib import pyplot as plt
 from data_utils import LeavesData, getData, test_transform, train_transform
 from options import getArgs
 
@@ -56,8 +57,9 @@ class ModelUpdater():
         self.optimizer = optimizer
         self.loss_fn = nn.CrossEntropyLoss()
 
-    def train_one_epoch(self, model):
+    def train_one_epoch(self, model, animator, epoch):
         model.train()
+        num_batches = len(train_loader)
         metric = d2l.Accumulator(3)
         for idx, (imgs, labels) in enumerate(tqdm(self.train_loader)):
             imgs = imgs.to(args.device)
@@ -70,12 +72,16 @@ class ModelUpdater():
             with torch.no_grad():
                 metric.add(
                     loss * imgs.shape[0], d2l.accuracy(out, labels), imgs.shape[0])
+            train_l = metric[0] / metric[2]
+            train_acc = metric[1] / metric[2]
             if self.args.verbose and (idx + 1) % 10 == 0:
-                train_l = metric[0] / metric[2]
-                train_acc = metric[1] / metric[2]
-                print("{}/{} loss:{}  acc:{}".format(i,
-                      len(self.train_loader), train_l, train_acc))
-        return metric[0] / metric[2], metric[1] / metric[2]
+                print("{}/{} loss:{}  acc:{}".format(idx,
+                      num_batches, train_l, train_acc))
+
+            if (idx + 1) % (num_batches // 5) == 0 or idx == num_batches - 1:
+                animator.add(epoch + (idx + 1) / num_batches,
+                             (train_acc, train_l, None, None))
+        return train_l, train_acc
 
     def validate(self, model, use_top5=False):
         model.eval()
@@ -102,6 +108,7 @@ class ModelUpdater():
             return top1.avg
         else:
             return top1.avg, top5.avg
+
 
 def set_parameter_requires_grad(model, feature_extracting, num_classes):
     if feature_extracting:
@@ -146,9 +153,11 @@ if __name__ == '__main__':
     best_loss = 1e9
     best_weight = copy.deepcopy(model.module.state_dict())
     writer = SummaryWriter('./logs')
+    animator = d2l.Animator(xlabel='epoch', xlim=[1, args.epoch],
+                            legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
     for i in range(args.epoch):
         print("Epoch {}/{} training...".format(i, args.epoch))
-        loss, acc = updater.train_one_epoch(model)
+        loss, acc = updater.train_one_epoch(model, animator, i)
         writer.add_scalar("loss", loss, i)
         writer.add_scalar("train_acc", acc)
         print("train loss:{} acc:{}".format(loss, acc))
@@ -160,8 +169,13 @@ if __name__ == '__main__':
                 "current_epoch": i,
                 "best_loss": best_loss,
             }
-            torch.save(save_dict, args.ckpt_path)
+            torch.save(save_dict, path.join(path.dirname(
+                __file__), f'../models/{args.ckpt_path}'))
         if args.eval_all:
             acc, acc5 = updater.validate(model, use_top5=True)
             print("acc:{} acc5:{}".format(acc, acc5))
             writer.add_scalars("test_acc", {"top1": acc, "top5": acc5})
+
+            animator.add(i + 1, (None, None, acc, acc5))
+        plt.savefig(path.join(path.dirname(__file__),
+                    f'../figures/epoch-{i+1}.png'))

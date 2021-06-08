@@ -16,8 +16,8 @@ class ResultSaver():
         self.args = args
         self.model = model
         test_data = getData(args, mode='test')
-        print(len(test_data))
-        print(test_data[0][0].shape, test_data[0][1])
+        # print(len(test_data))
+        # print(test_data[0][0].shape, test_data[0][1])
 
         self.class_to_id = test_data.raw_data.class_to_id
         self.id_to_class = test_data.raw_data.id_to_class
@@ -29,18 +29,20 @@ class ResultSaver():
 
     def start(self):
         self.model.eval()
-        for idx, (imgs, img_names) in enumerate(tqdm(self.test_loader)):
-            imgs = imgs.to(self.args.device)
-            out = model(imgs)
-            for i in range(len(imgs)):
-                self.ans.append({
-                    'image': img_names[i],
-                    'label': self.id_to_class[out[i]]
-                })
+        with torch.no_grad():
+            for idx, (imgs, img_names) in enumerate(tqdm(self.test_loader)):
+                imgs = imgs.to(self.args.device)
+                out = model(imgs)
+                labels = out.argmax(dim=1)
+                for i in range(len(imgs)):
+                    self.ans.append({
+                        'image': img_names[i],
+                        'label': self.id_to_class[labels[i].item()]
+                    }, ignore_index=True)
         self.ans.to_csv(
             path.join(
                 path.dirname(__file__),
-                '../dataset/classify-leaves', + 'submission.csv'))
+                '../dataset/classify-leaves', 'submission.csv'))
 
 
 if __name__ == "__main__":
@@ -56,7 +58,8 @@ if __name__ == "__main__":
     model = nn.DataParallel(model)
     model = model.to(args.device)
     try:
-        read_dict = torch.load(args.ckpt_path)
+        read_dict = torch.load(path.join(path.dirname(
+            __file__), f'../models/{args.ckpt_path}'))
         model.module.load_state_dict(read_dict['weight'])
     except:
         print('模型加载失败')
