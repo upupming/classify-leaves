@@ -20,6 +20,19 @@
 
 ```
 
+## Result
+
+| 模型描述 | 验证集acc | 测试集分数 |
+| :----:| :----: | :----: |
+| se-resnext101(freeze) | 68.08（92.53） | -- |
+
+## To do
+
+1. warm up
+2. 标签平滑
+3. TTA(Test Time Augmentation)
+4. unlabeled data
+
 ## References
 
 1. https://www.kaggle.com/c/classify-leaves/overview
