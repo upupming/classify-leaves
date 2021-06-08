@@ -4,3 +4,4 @@ dataset
 *.pth
 logs
 figures/*.png
+*-checkpoint.ipynb
