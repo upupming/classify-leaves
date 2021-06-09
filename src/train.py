@@ -112,13 +112,13 @@ class ModelUpdater():
             return top1.avg, top5.avg
 
 
-def set_parameter_requires_grad(model:nn.Module, feature_extracting, num_classes):
-    model_children=list(model.children())
+def set_parameter_requires_grad(model: nn.Module, feature_extracting, num_classes):
+    model_children = list(model.children())
     if feature_extracting:
         for i in range(len(model_children)):
-            if i != 4 or i != len(model_children)-1:
-                layer=model_children[i]
-                #print(layer)
+            if i != 4 or i != len(model_children) - 1:
+                layer = model_children[i]
+                # print(layer)
                 for param in layer.parameters():
                     param.requires_grad = False
     num_ftrs = model.last_linear.in_features
@@ -131,7 +131,6 @@ if __name__ == '__main__':
     num_classes = 176
 
     leaves_train = LeavesData(mode='train', transform=train_transform)
-    print(leaves_train[0])
     kFold = KFold(n_splits=args.fold, shuffle=True)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
         print(f'Training for fold {fold}/{args.fold}...')
@@ -165,12 +164,13 @@ if __name__ == '__main__':
         current_epoch = 0
         best_acc = 0
         if args.resume:
-            save_dict = torch.load(path.join(path.dirname(__file__), f'../models/{args.ckpt_path}'))
+            save_dict = torch.load(path.join(path.dirname(
+                __file__), f'../models/{args.ckpt_path}'))
             current_epoch = save_dict['current_epoch']
             model.load_state_dict(save_dict['weight'])
             optimizer.load_state_dict(save_dict['optimizer'])
             scheduler_warmup.load_state_dict(save_dict["scheduler"])
-            best_acc=save_dict["best_loss"]
+            best_acc = save_dict["best_loss"]
 
         model = nn.DataParallel(model)
         model = model.to(args.device)
@@ -180,7 +180,7 @@ if __name__ == '__main__':
         writer = SummaryWriter('./logs')
         animator = d2l.Animator(xlabel='epoch', xlim=[1, args.epoch],
                                 legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
-        for i in range(current_epoch,args.epoch):
+        for i in range(current_epoch, args.epoch):
             print("Epoch {}/{} training...".format(i, args.epoch))
             scheduler_warmup.step()
             loss, acc = updater.train_one_epoch(model, animator, i)
