@@ -61,11 +61,11 @@ class ModelUpdater():
 
     def train_one_epoch(self, model, animator, epoch):
         model.train()
-        num_batches = len(train_loader)
+        num_batches = len(self.train_loader)
         metric = d2l.Accumulator(3)
         for idx, (imgs, labels) in enumerate(tqdm(self.train_loader)):
-            imgs = imgs.to(args.device)
-            labels = labels.to(args.device)
+            imgs = imgs.to(self.args.device)
+            labels = labels.to(self.args.device)
             self.optimizer.zero_grad()
             out = model(imgs)
             loss = self.loss_fn(out, labels)
@@ -125,8 +125,7 @@ def set_parameter_requires_grad(model: nn.Module, feature_extracting, num_classe
     model.last_linear = nn.Linear(num_ftrs, num_classes)
 
 
-if __name__ == '__main__':
-    args = getArgs()
+def train(args):
     args.device = d2l.try_gpu()
     num_classes = 176
 
@@ -209,3 +208,8 @@ if __name__ == '__main__':
                     __file__), f'../models/fold={fold}-{args.ckpt_path}'))
             plt.savefig(path.join(path.dirname(__file__),
                         f'../figures/epoch-{i+1}.png'))
+
+
+if __name__ == '__main__':
+    args = getArgs()
+    train(args)
