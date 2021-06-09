@@ -164,7 +164,7 @@ def train(args):
         best_acc = 0
         if args.resume:
             save_dict = torch.load(path.join(path.dirname(
-                __file__), f'../models/{args.ckpt_path}'))
+                __file__), f'../models/fold={fold}-{args.ckpt_path}'))
             current_epoch = save_dict['current_epoch']
             model.load_state_dict(save_dict['weight'])
             optimizer.load_state_dict(save_dict['optimizer'])
