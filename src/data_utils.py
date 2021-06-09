@@ -72,6 +72,7 @@ class LeavesData(Dataset):
         # 读取图像文件
         img_as_img = np.array(Image.open(os.path.join(
             self.data_root, single_image_name)))
+        #print(type(img_as_img))
         if self.transform:
             img_as_img = self.transform(image=img_as_img)['image']
         if self.mode == 'test':
@@ -97,7 +98,7 @@ class SplitDataset(Dataset):
         real_idx = self.idxs[index]
         img, label = self.raw_data[real_idx]
         if self.trans is not None:
-            img = self.trans(img)
+            img = self.trans(image=img)["image"]
         return img, label
 
     def __len__(self) -> int:
@@ -117,9 +118,11 @@ class TestDataset(Dataset):
     def __getitem__(self, index: int):
         img, img_name = self.raw_data[index]
         if self.trans is not None:
-            img = self.trans(img)
+            img = self.trans(image=img)["image"]
         return img, img_name
 
+mean=[0.485*255.0, 0.456*255.0, 0.406*255.0]
+std=[0.229*255.0, 0.224*255.0, 0.225*255.0]
 
 train_transform = albu.Compose([
     albu.Resize(224, 224),
@@ -162,15 +165,14 @@ train_transform = albu.Compose([
         p=0.9,
     ),
     # https://kozodoi.me/python/deep%20learning/pytorch/tutorial/2021/03/08/image-mean-std.html
-    albu.Normalize(mean=(0, 0, 0),
-                   std=(1, 1, 1)),
-    ToTensorV2()
+    albu.Normalize(mean,std),
+    ToTensorV2(),
+
 ])
 test_transform = val_transform = albu.Compose([
     albu.Resize(224, 224),
-    albu.Normalize(mean=(0, 0, 0),
-                   std=(1, 1, 1)),
-    ToTensorV2()
+    albu.Normalize(mean,std),
+    ToTensorV2(),
 ])
 
 

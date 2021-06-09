@@ -1,4 +1,5 @@
 import pandas as pd
+from pretrainedmodels.models.senet import se_resnext50_32x4d
 from data_utils import getData
 from options import getArgs
 from torch.utils.data import dataloader
@@ -9,12 +10,13 @@ from torch import nn
 from os import path
 from train import set_parameter_requires_grad
 from d2l import torch as d2l
+import copy
 
 
 class ResultSaver():
-    def __init__(self, args, model: nn.DataParallel) -> None:
+    def __init__(self, args, model_list) -> None:
         self.args = args
-        self.model = model
+        self.model_list = model_list
         test_data = getData(args, mode='test')
         # print(len(test_data))
         # print(test_data[0][0].shape, test_data[0][1])
@@ -28,11 +30,14 @@ class ResultSaver():
             test_data, args.batch_size, shuffle=False)
 
     def start(self):
-        self.model.eval()
+        for model in self.model_list:
+            model.eval()
         with torch.no_grad():
             for idx, (imgs, img_names) in enumerate(tqdm(self.test_loader)):
                 imgs = imgs.to(self.args.device)
-                out = model(imgs)
+                out=torch.zeros(imgs.shape[0],len(self.id_to_class)).to(self.args.device)
+                for model in self.model_list:
+                    out += torch.softmax(model(imgs),dim=1)
                 labels = out.argmax(dim=1)
                 for i in range(len(imgs)):
                     self.ans = self.ans.append({
@@ -41,8 +46,7 @@ class ResultSaver():
                     }, ignore_index=True)
         self.ans.to_csv(
             path.join(
-                path.dirname(__file__),
-                '../dataset/classify-leaves', 'submission.csv'), index=False)
+                path.dirname(__file__), '../', 'submission.csv'), index=False)
 
 
 if __name__ == "__main__":
@@ -51,18 +55,23 @@ if __name__ == "__main__":
     num_classes = 176
     if args.model == 'seresnext101':
         model = se_resnext101_32x4d()
+    elif args.model == "seresnext50":
+        model = se_resnext50_32x4d()
     else:
         print("Unexpected model type")
         exit(-1)
     set_parameter_requires_grad(model, args.freeze, num_classes)
     model = nn.DataParallel(model)
     model = model.to(args.device)
+    model_list=[]
     try:
-        read_dict = torch.load(path.join(path.dirname(
-            __file__), f'../models/{args.ckpt_path}'))
-        model.module.load_state_dict(read_dict['weight'])
+        for fold in range(args.fold):                
+            read_dict = torch.load(path.join(path.dirname(
+                        __file__), f'../models/fold={fold}-{args.ckpt_path}'))
+            model.module.load_state_dict(read_dict['weight'])
+            model_list.append(copy.deepcopy(model))
     except:
         print('模型加载失败')
         pass
-    resultSaver = ResultSaver(args, model=model)
+    resultSaver = ResultSaver(args, model_list)
     resultSaver.start()
