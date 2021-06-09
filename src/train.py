@@ -6,13 +6,14 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from warmup_scheduler import GradualWarmupScheduler
 from d2l import torch as d2l
-from pretrainedmodels import se_resnext101_32x4d
+from pretrainedmodels import se_resnext101_32x4d, se_resnext50_32x4d
 from torch.nn.modules.loss import CrossEntropyLoss
-from torch.utils.data import dataloader
+from torch.utils.data import SubsetRandomSampler, DataLoader
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 from data_utils import LeavesData, getData, test_transform, train_transform
 from options import getArgs
+from sklearn.model_selection import KFold
 
 
 class AverageMeter(object):
@@ -123,67 +124,81 @@ if __name__ == '__main__':
     args = getArgs()
     args.device = d2l.try_gpu()
     num_classes = 176
-    if args.model == 'seresnext101':
-        model = se_resnext101_32x4d()
-    else:
-        print("Unexpected model type")
-        exit(-1)
 
-    set_parameter_requires_grad(model, args.freeze, num_classes)
-    # print(model.last_linear.weight.requires_grad)
+    leaves_train = LeavesData(mode='train', transform=train_transform)
+    print(leaves_train[0])
+    kFold = KFold(n_splits=args.fold, shuffle=True)
+    for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
+        print(f'Training for fold {fold}/{args.fold}...')
+        train_subsampler = SubsetRandomSampler(train_ids)
+        val_subsampler = SubsetRandomSampler(val_ids)
+        train_loader = DataLoader(
+            leaves_train,
+            batch_size=args.batch_size, sampler=train_subsampler)
+        val_loader = DataLoader(
+            leaves_train,
+            batch_size=args.batch_size, sampler=val_subsampler)
 
-    train_data, val_data = getData(args, mode='train')
-    train_loader = dataloader.DataLoader(
-        train_data, args.batch_size, shuffle=True)
-    val_loader = dataloader.DataLoader(val_data, args.batch_size, shuffle=True)
+        if args.model == 'seresnext101':
+            model = se_resnext101_32x4d()
+        elif args.model == 'seresnext50':
+            model = se_resnext50_32x4d()
+        else:
+            print("Unexpected model type")
+            exit(-1)
 
-    optimizer = optim.Adam(
-        filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, args.epoch, 1e-5)
-    scheduler_warmup=GradualWarmupScheduler(optimizer,multiplier=1,total_epoch=5,after_scheduler=scheduler)
-    current_epoch = 0
-    if args.resume:
-        save_dict = torch.load(args.ckpt_path)
-        current_epoch = save_dict['current_epoch']
-        model.load_state_dict(save_dict['weight'])
-        optimizer.load_state_dict(save_dict['optimizer'])
-        scheduler_warmup.load_state_dict(save_dict["scheduler"])
+        set_parameter_requires_grad(model, args.freeze, num_classes)
+        # print(model.last_linear.weight.requires_grad)
 
-    model = nn.DataParallel(model)
-    model = model.to(args.device)
-    updater = ModelUpdater(args, train_loader, val_loader, optimizer)
+        optimizer = optim.Adam(
+            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, args.epoch, 1e-5)
+        scheduler_warmup = GradualWarmupScheduler(
+            optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler)
+        current_epoch = 0
+        if args.resume:
+            save_dict = torch.load(args.ckpt_path)
+            current_epoch = save_dict['current_epoch']
+            model.load_state_dict(save_dict['weight'])
+            optimizer.load_state_dict(save_dict['optimizer'])
+            scheduler_warmup.load_state_dict(save_dict["scheduler"])
 
-    best_acc = 0
-    best_weight = copy.deepcopy(model.module.state_dict())
-    writer = SummaryWriter('./logs')
-    animator = d2l.Animator(xlabel='epoch', xlim=[1, args.epoch],
-                            legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
-    for i in range(args.epoch):
-        print("Epoch {}/{} training...".format(i, args.epoch))
-        scheduler_warmup.step()
-        loss, acc = updater.train_one_epoch(model, animator, i)
-        writer.add_scalar("loss", loss, i)
-        writer.add_scalar("train_acc", acc,i)
-        print("train loss:{} acc:{}".format(loss, acc))
-       
-        if args.eval_all:
-            acc, acc5 = updater.validate(model, use_top5=True)
-            print("acc:{} acc5:{}".format(acc, acc5))
-            writer.add_scalars("test_acc", {"top1": acc, "top5": acc5},i)
-            animator.add(i + 1, (None, None, acc, acc5))
-        #如果eval_all的话，acc是验证集上的acc，否则是训练集上的acc    
-        if acc > best_acc:
-            best_acc = acc
-            best_weight = copy.deepcopy(model.module.state_dict())
-            save_dict = {
-                "weight": best_weight,
-                "current_epoch": i,
-                "best_loss": best_acc,
-                "optimizer":optimizer.state_dict(),
-                "scheduler":scheduler_warmup.state_dict(),
-            }
-            torch.save(save_dict, path.join(path.dirname(
-                __file__), f'../models/{args.ckpt_path}'))
-        plt.savefig(path.join(path.dirname(__file__),
-                    f'../figures/epoch-{i+1}.png'))
+        model = nn.DataParallel(model)
+        model = model.to(args.device)
+        updater = ModelUpdater(args, train_loader, val_loader, optimizer)
+
+        best_acc = 0
+        best_weight = copy.deepcopy(model.module.state_dict())
+        writer = SummaryWriter('./logs')
+        animator = d2l.Animator(xlabel='epoch', xlim=[1, args.epoch],
+                                legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
+        for i in range(args.epoch):
+            print("Epoch {}/{} training...".format(i, args.epoch))
+            scheduler_warmup.step()
+            loss, acc = updater.train_one_epoch(model, animator, i)
+            writer.add_scalar(f"fold={fold}-loss", loss, i)
+            writer.add_scalar(f"fold={fold}-train_acc", acc, i)
+            print("train loss:{} acc:{}".format(loss, acc))
+
+            if args.eval_all:
+                acc, acc5 = updater.validate(model, use_top5=True)
+                print("acc:{} acc5:{}".format(acc, acc5))
+                writer.add_scalars(
+                    f"fold={fold}-test_acc", {"top1": acc, "top5": acc5}, i)
+                animator.add(i + 1, (None, None, acc, acc5))
+            # 如果eval_all的话，acc是验证集上的acc，否则是训练集上的acc
+            if acc > best_acc:
+                best_acc = acc
+                best_weight = copy.deepcopy(model.module.state_dict())
+                save_dict = {
+                    "weight": best_weight,
+                    "current_epoch": i,
+                    "best_loss": best_acc,
+                    "optimizer": optimizer.state_dict(),
+                    "scheduler": scheduler_warmup.state_dict(),
+                }
+                torch.save(save_dict, path.join(path.dirname(
+                    __file__), f'../models/fold={fold}-{args.ckpt_path}'))
+            plt.savefig(path.join(path.dirname(__file__),
+                        f'../figures/epoch-{i+1}.png'))
