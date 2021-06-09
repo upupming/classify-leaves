@@ -9,7 +9,7 @@ from d2l import torch as d2l
 from pretrainedmodels import se_resnext101_32x4d, se_resnext50_32x4d
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import SubsetRandomSampler, DataLoader
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 from matplotlib import pyplot as plt
 from data_utils import LeavesData, getData, test_transform, train_transform
 from options import getArgs
@@ -133,6 +133,7 @@ def train(args):
     kFold = KFold(n_splits=args.fold, shuffle=True)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
         print(f'Training for fold {fold}/{args.fold}...')
+        model_path = f'../models/fold={fold}-{args.ckpt_path}'
         train_subsampler = SubsetRandomSampler(train_ids)
         val_subsampler = SubsetRandomSampler(val_ids)
         train_loader = DataLoader(
@@ -160,20 +161,21 @@ def train(args):
         scheduler_warmup = GradualWarmupScheduler(
             optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler)
 
+        model = nn.DataParallel(model)
+        model = model.to(args.device)
+        updater = ModelUpdater(args, train_loader, val_loader, optimizer)
         current_epoch = 0
         best_acc = 0
         if args.resume:
             save_dict = torch.load(path.join(path.dirname(
-                __file__), f'../models/fold={fold}-{args.ckpt_path}'))
+                __file__), model_path))
             current_epoch = save_dict['current_epoch']
-            model.load_state_dict(save_dict['weight'])
+            model.module.load_state_dict(save_dict['weight'])
+            print(
+                f'loaded model from {model_path} for resume training with current_epoch={current_epoch}')
             optimizer.load_state_dict(save_dict['optimizer'])
             scheduler_warmup.load_state_dict(save_dict["scheduler"])
-            best_acc = save_dict["best_loss"]
-
-        model = nn.DataParallel(model)
-        model = model.to(args.device)
-        updater = ModelUpdater(args, train_loader, val_loader, optimizer)
+            best_acc = save_dict["best_acc"]
 
         best_weight = copy.deepcopy(model.module.state_dict())
         writer = SummaryWriter('./logs')
@@ -205,9 +207,9 @@ def train(args):
                     "scheduler": scheduler_warmup.state_dict(),
                 }
                 torch.save(save_dict, path.join(path.dirname(
-                    __file__), f'../models/fold={fold}-{args.ckpt_path}'))
+                    __file__), model_path))
             plt.savefig(path.join(path.dirname(__file__),
-                        f'../figures/epoch-{i+1}.png'))
+                        f'../figures/fold={fold}-epoch={i+1}.png'))
 
 
 if __name__ == '__main__':
