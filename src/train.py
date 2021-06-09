@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 from warmup_scheduler import GradualWarmupScheduler
 from d2l import torch as d2l
-from pretrainedmodels import se_resnext101_32x4d
+from pretrainedmodels import se_resnext101_32x4d,se_resnext50_32x4d
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import dataloader
 from tqdm import tqdm
@@ -111,10 +111,15 @@ class ModelUpdater():
             return top1.avg, top5.avg
 
 
-def set_parameter_requires_grad(model, feature_extracting, num_classes):
+def set_parameter_requires_grad(model:nn.Module, feature_extracting, num_classes):
+    model_children=list(model.children())
     if feature_extracting:
-        for param in model.parameters():
-            param.requires_grad = False
+        for i in range(len(model_children)):
+            if i != 4 or i != len(model_children)-1:
+                layer=model_children[i]
+                #print(layer)
+                for param in layer.parameters():
+                    param.requires_grad = False
     num_ftrs = model.last_linear.in_features
     model.last_linear = nn.Linear(num_ftrs, num_classes)
 
@@ -125,6 +130,8 @@ if __name__ == '__main__':
     num_classes = 176
     if args.model == 'seresnext101':
         model = se_resnext101_32x4d()
+    elif args.model=="seresnext50":
+        model = se_resnext50_32x4d()
     else:
         print("Unexpected model type")
         exit(-1)
@@ -142,24 +149,26 @@ if __name__ == '__main__':
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer, args.epoch, 1e-5)
     scheduler_warmup=GradualWarmupScheduler(optimizer,multiplier=1,total_epoch=5,after_scheduler=scheduler)
+    
     current_epoch = 0
+    best_acc = 0
     if args.resume:
-        save_dict = torch.load(args.ckpt_path)
+        save_dict = torch.load(path.join(path.dirname(__file__), f'../models/{args.ckpt_path}'))
         current_epoch = save_dict['current_epoch']
         model.load_state_dict(save_dict['weight'])
         optimizer.load_state_dict(save_dict['optimizer'])
         scheduler_warmup.load_state_dict(save_dict["scheduler"])
+        best_acc=save_dict["best_loss"]
 
     model = nn.DataParallel(model)
     model = model.to(args.device)
     updater = ModelUpdater(args, train_loader, val_loader, optimizer)
 
-    best_acc = 0
     best_weight = copy.deepcopy(model.module.state_dict())
     writer = SummaryWriter('./logs')
     animator = d2l.Animator(xlabel='epoch', xlim=[1, args.epoch],
                             legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
-    for i in range(args.epoch):
+    for i in range(current_epoch,args.epoch):
         print("Epoch {}/{} training...".format(i, args.epoch))
         scheduler_warmup.step()
         loss, acc = updater.train_one_epoch(model, animator, i)
@@ -179,7 +188,7 @@ if __name__ == '__main__':
             save_dict = {
                 "weight": best_weight,
                 "current_epoch": i,
-                "best_loss": best_acc,
+                "best_acc": best_acc,
                 "optimizer":optimizer.state_dict(),
                 "scheduler":scheduler_warmup.state_dict(),
             }
