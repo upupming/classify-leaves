@@ -11,6 +11,7 @@ from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import SubsetRandomSampler, DataLoader
 from tqdm.autonotebook import tqdm
 from matplotlib import pyplot as plt
+from animator import Animator
 from data_utils import LeavesData, getData, test_transform, train_transform
 from options import getArgs
 from sklearn.model_selection import KFold
@@ -179,8 +180,8 @@ def train(args):
 
         best_weight = copy.deepcopy(model.module.state_dict())
         writer = SummaryWriter('./logs')
-        animator = d2l.Animator(xlabel='epoch', xlim=[1, args.epoch],
-                                legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
+        animator = Animator(xlabel='epoch', xlim=[1, args.epoch],
+                            legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
         for i in range(current_epoch, args.epoch):
             print("Epoch {}/{} training...".format(i, args.epoch))
             scheduler_warmup.step()
