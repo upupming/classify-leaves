@@ -94,8 +94,8 @@ class ModelUpdater():
             top5 = AverageMeter('Acc@5', ':6.2f')
         with torch.no_grad():
             for idx, (imgs, labels) in enumerate(self.val_loader):
-                imgs = imgs.to(args.device)
-                labels = labels.to(args.device)
+                imgs = imgs.to(self.args.device)
+                labels = labels.to(self.args.device)
                 out = model(imgs)
 
                 pred.extend((torch.argmax(out, 1)).cpu().numpy().tolist())
