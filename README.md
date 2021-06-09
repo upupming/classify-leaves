@@ -39,11 +39,12 @@
 
 | 模型描述 | 验证集acc | 测试集分数 |
 | :----:| :----: | :----: |
-| se-resnext101(freeze) | 68.08（92.53） | -- |
+| se-resnext101(freeze) | 75.08（92.53） | 68.59 |
+| se-resnext101(freeze)+warmup | 78.23（95.63） | 76.181 |
 
 ## To do
 
-1. warm up
+1. warm up(√)
 2. 标签平滑
 3. TTA(Test Time Augmentation)
 4. unlabeled data
