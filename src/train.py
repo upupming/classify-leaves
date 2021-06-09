@@ -131,7 +131,8 @@ def train(args):
     num_classes = 176
 
     leaves_train = LeavesData(mode='train', transform=train_transform)
-    kFold = KFold(n_splits=args.fold, shuffle=True)
+    # 这里不能随机，不然断点续训的时候数据不一样，可能这次的测试集是上次的训练集
+    kFold = KFold(n_splits=args.fold, shuffle=False)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
         print(f'Training for fold {fold}/{args.fold}...')
         model_path = f'../models/fold={fold}-{args.ckpt_path}'
@@ -156,7 +157,7 @@ def train(args):
         # print(model.last_linear.weight.requires_grad)
 
         optimizer = optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
+            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=1e-3)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer, args.epoch, 1e-5)
         scheduler_warmup = GradualWarmupScheduler(
