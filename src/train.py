@@ -59,7 +59,7 @@ class ModelUpdater():
         self.optimizer = optimizer
         self.loss_fn = nn.CrossEntropyLoss()
 
-    def train_one_epoch(self, model, epoch):
+    def train_one_epoch(self, model):
         model.train()
         num_batches = len(self.train_loader)
         metric = d2l.Accumulator(3)
@@ -181,7 +181,7 @@ def train(args):
             print("Epoch {}/{} training...".format(i, args.epoch))
             scheduler_warmup.step()
 
-            loss, acc = updater.train_one_epoch(model, i)
+            loss, acc = updater.train_one_epoch(model)
             writer.add_scalar(f"fold={fold}-loss", loss, i)
             writer.add_scalar(f"fold={fold}-train_acc", acc, i)
             print("train loss:{} acc:{}".format(loss, acc))
