@@ -1,5 +1,7 @@
 # 首先导入包
 import torch
+import albumentations as albu
+from albumentations.pytorch import ToTensorV2
 import torch.nn as nn
 import pandas as pd
 import numpy as np
@@ -68,10 +70,10 @@ class LeavesData(Dataset):
         single_image_name = self.image_arr[index]
 
         # 读取图像文件
-        img_as_img = Image.open(os.path.join(
-            self.data_root, single_image_name))
+        img_as_img = np.array(Image.open(os.path.join(
+            self.data_root, single_image_name)))
         if self.transform:
-            img_as_img = self.transform(img_as_img)
+            img_as_img = self.transform(image=img_as_img)['image']
         if self.mode == 'test':
             # 返回一个图像名称方便预测生成 csv 用
             return img_as_img, single_image_name
@@ -119,17 +121,56 @@ class TestDataset(Dataset):
         return img, img_name
 
 
-train_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.RandomCrop((224, 224), padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    transforms.RandomRotation(90),
-    transforms.ToTensor()
+train_transform = albu.Compose([
+    albu.Resize(224, 224),
+    albu.HorizontalFlip(p=0.5),
+    albu.VerticalFlip(p=0.5),
+
+    albu.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0,
+                          shift_limit=0.1, p=1, border_mode=0),
+
+    albu.PadIfNeeded(min_height=224, min_width=224,
+                     always_apply=True, border_mode=0),
+    albu.RandomCrop(height=224, width=224, always_apply=True),
+
+    albu.GaussNoise(p=0.2),
+    albu.Perspective(p=0.5),
+
+    albu.OneOf(
+        [
+            albu.CLAHE(p=1),
+            albu.RandomBrightness(p=1),
+            albu.RandomGamma(p=1),
+        ],
+        p=0.9,
+    ),
+
+    albu.OneOf(
+        [
+            albu.Sharpen(p=1),
+            albu.Blur(blur_limit=3, p=1),
+            albu.MotionBlur(blur_limit=3, p=1),
+        ],
+        p=0.9,
+    ),
+
+    albu.OneOf(
+        [
+            albu.RandomBrightnessContrast(p=1),
+            albu.HueSaturationValue(p=1),
+        ],
+        p=0.9,
+    ),
+    # https://kozodoi.me/python/deep%20learning/pytorch/tutorial/2021/03/08/image-mean-std.html
+    albu.Normalize(mean=(0, 0, 0),
+                   std=(1, 1, 1)),
+    ToTensorV2()
 ])
-test_transform = val_transform = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor()
+test_transform = val_transform = albu.Compose([
+    albu.Resize(224, 224),
+    albu.Normalize(mean=(0, 0, 0),
+                   std=(1, 1, 1)),
+    ToTensorV2()
 ])
 
 

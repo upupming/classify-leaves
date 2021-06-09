@@ -13,9 +13,11 @@ def getArgs():
                             help="The learning rate of optimizer")
     arg_parser.add_argument("--batch_size", type=int,
                             default=64, help="The batch size")
+    arg_parser.add_argument("--fold", type=int,
+                            default=10, help="Number of folds")
     arg_parser.add_argument("--verbose", action="store_true",
                             help="output the verbose information")
-    arg_parser.add_argument("--model", type=str, default='seresnext101',
+    arg_parser.add_argument("--model", type=str, default='seresnext50',
                             help="choose the type of network")
     arg_parser.add_argument("--freeze", action="store_true", default=True,
                             help="freeze the former layers or not")
