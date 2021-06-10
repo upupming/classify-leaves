@@ -109,9 +109,14 @@ class SplitDataset(Dataset):
 
 
 class TestDataset(Dataset):
-    def __init__(self, leaves_data: LeavesData, trans=None) -> None:
+    def __init__(self, args, leaves_data: LeavesData, trans=None) -> None:
         self.raw_data = leaves_data
-        self.transform_list = trans
+        self.transform_list = None
+        self.transform = None
+        if args.tta_transform:
+            self.transform_list = trans
+        else:
+            self.transform = trans
 
     def __len__(self) -> int:
         return len(self.raw_data)
@@ -123,6 +128,8 @@ class TestDataset(Dataset):
             for trans in self.transform_list:
                 img_list.append(trans(image=img)['image'])
             return img_list, img_name
+        if self.transform is not None:
+            img = self.transform(image=img)['image']
         return img, img_name
 
 
@@ -206,7 +213,8 @@ def getData(args, mode='train'):
         val_data = SplitDataset(all_data, val_idxs, val_transform)
         return train_data, val_data
     else:
-        test_data = TestDataset(all_data, TTA_transform)
+        test_data = TestDataset(args,
+            all_data, TTA_transform if args.tta_transform else test_transform)
         return test_data
 
 

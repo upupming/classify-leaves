@@ -25,17 +25,8 @@ class ResultSaver():
     def __init__(self, args, model_list) -> None:
         self.args = args
         self.model_list = model_list
-        test_data = getData(args, mode='test')
         # print(len(test_data))
-        # print(test_data[0][0].shape, test_data[0][1])
-
-        self.class_to_id = test_data.raw_data.class_to_id
-        self.id_to_class = test_data.raw_data.id_to_class
-        column_names = ["image", "label"]
-        self.ans = pd.DataFrame(columns=column_names)
-
-        self.test_loader = dataloader.DataLoader(
-            test_data, args.batch_size, shuffle=False)
+        # print(test_data[0][0].shape, test_data[0][1]
 
     def pred_one_batch(self, imgs):
         imgs = imgs.to(self.args.device)
@@ -46,15 +37,30 @@ class ResultSaver():
         return out
 
     def start(self):
+        column_names = ["image", "label"]
+        self.ans = pd.DataFrame(columns=column_names)
+        test_data = getData(args, mode='test')
+        self.class_to_id = test_data.raw_data.class_to_id
+        self.id_to_class = test_data.raw_data.id_to_class
+        self.test_loader = dataloader.DataLoader(
+            test_data, args.batch_size, shuffle=False)
+
         for model in self.model_list:
             model.eval()
         with torch.no_grad():
             for idx, (imgs_list, img_names) in enumerate(tqdm(self.test_loader)):
-                pred_labels = torch.zeros(imgs_list[0].shape[0], len(
-                    self.id_to_class)).to(self.args.device)
-                for imgs in imgs_list:
-                    pred_labels += self.pred_one_batch(imgs)
-                pred_labels = pred_labels.argmax(dim=1)
+                # TTA 预测
+                if type(imgs_list) == list:
+                    pred_labels = torch.zeros(imgs_list[0].shape[0], len(
+                        self.id_to_class)).to(self.args.device)
+                    for imgs in imgs_list:
+                        pred_labels += self.pred_one_batch(imgs)
+                    pred_labels = pred_labels.argmax(dim=1)
+                # 单幅图预测
+                else:
+                    imgs = imgs_list
+                    pred_labels = self.pred_one_batch(imgs)
+                    pred_labels = pred_labels.argmax(dim=1)
                 for i in range(len(imgs)):
                     self.ans = self.ans.append({
                         'image': img_names[i],

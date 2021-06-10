@@ -31,5 +31,7 @@ def getArgs():
 
     arg_parser.add_argument("--res_train", action="store_true",
                             help="Get result on train dataset")
+    arg_parser.add_argument("--tta_transform", action="store_true",
+                            help="Use TTA transform on test dataset")
     args = arg_parser.parse_args()
     return args
