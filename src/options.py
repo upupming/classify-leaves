@@ -28,5 +28,8 @@ def getArgs():
 
     arg_parser.add_argument("--resume", action="store_true",
                             help="continue train the model with ckpt file")
+
+    arg_parser.add_argument("--res_train", action="store_true",
+                            help="Get result on train dataset")
     args = arg_parser.parse_args()
     return args
