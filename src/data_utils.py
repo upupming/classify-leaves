@@ -110,15 +110,18 @@ class SplitDataset(Dataset):
 class TestDataset(Dataset):
     def __init__(self, leaves_data: LeavesData, trans=None) -> None:
         self.raw_data = leaves_data
-        self.trans = trans
+        self.transform_list = trans
 
     def __len__(self) -> int:
         return len(self.raw_data)
 
     def __getitem__(self, index: int):
         img, img_name = self.raw_data[index]
-        if self.trans is not None:
-            img = self.trans(image=img)["image"]
+        if self.transform_list is not None:
+            img_list=[]
+            for trans in self.transform_list:
+                img_list.append(trans(image=img)['image'])
+            return img_list,img_name
         return img, img_name
 
 mean=[0.485*255.0, 0.456*255.0, 0.406*255.0]
@@ -175,6 +178,15 @@ test_transform = val_transform = albu.Compose([
     ToTensorV2(),
 ])
 
+TTA_transform=[
+    albu.Compose([albu.Resize(224, 224),albu.Normalize(mean,std),ToTensorV2(),]),
+    albu.Compose([albu.Resize(224, 224),albu.HorizontalFlip(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
+    albu.Compose([albu.Resize(224, 224),albu.VerticalFlip(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
+    albu.Compose([albu.Resize(224, 224),albu.RandomBrightnessContrast(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
+    albu.Compose([albu.Resize(224, 224),albu.Perspective(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
+    albu.Compose([albu.Resize(224, 224),albu.HueSaturationValue(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
+]
+
 
 def getData(args, mode='train'):
 
@@ -186,7 +198,7 @@ def getData(args, mode='train'):
         val_data = SplitDataset(all_data, val_idxs, val_transform)
         return train_data, val_data
     else:
-        test_data = TestDataset(all_data, test_transform)
+        test_data = TestDataset(all_data, TTA_transform)
         return test_data
 
 

@@ -14,9 +14,9 @@ import copy
 
 
 class ResultSaver():
-    def __init__(self, args, model_list) -> None:
+    def __init__(self, args, model) -> None:
         self.args = args
-        self.model_list = model_list
+        self.model = model
         test_data = getData(args, mode='test')
         # print(len(test_data))
         # print(test_data[0][0].shape, test_data[0][1])
@@ -30,15 +30,13 @@ class ResultSaver():
             test_data, args.batch_size, shuffle=False)
 
     def start(self):
-        for model in self.model_list:
-            model.eval()
+        self.model.eval()
         with torch.no_grad():
             for idx, (imgs_list, img_names) in enumerate(tqdm(self.test_loader)):
                 out=torch.zeros(imgs_list[0].shape[0],len(self.id_to_class)).to(args.device)
                 for imgs in imgs_list:
                     imgs = imgs.to(self.args.device)
-                    for model in self.model_list:
-                        out += torch.softmax(model(imgs),dim=1)
+                    out += torch.softmax(self.model(imgs),1)
                 labels = out.argmax(dim=1)
                 for i in range(len(imgs)):
                     self.ans = self.ans.append({
@@ -64,15 +62,13 @@ if __name__ == "__main__":
     set_parameter_requires_grad(model, args.freeze, num_classes)
     model = nn.DataParallel(model)
     model = model.to(args.device)
-    model_list=[]
-    try:
-        for fold in range(args.fold):                
-            read_dict = torch.load(path.join(path.dirname(
-                        __file__), f'../models/fold={fold}-{args.ckpt_path}'))
-            model.module.load_state_dict(read_dict['weight'])
-            model_list.append(copy.deepcopy(model))
+    fold=0
+    try:             
+        read_dict = torch.load(path.join(path.dirname(
+                    __file__), f'../models/fold={fold}-{args.ckpt_path}'))
+        model.module.load_state_dict(read_dict['weight'])
     except:
         print('模型加载失败')
         pass
-    resultSaver = ResultSaver(args, model_list)
+    resultSaver = ResultSaver(args, model)
     resultSaver.start()
