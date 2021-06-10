@@ -11,7 +11,6 @@ from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import SubsetRandomSampler, DataLoader
 from tqdm.autonotebook import tqdm
 from matplotlib import pyplot as plt
-from animator import Animator
 from data_utils import LeavesData, getData, test_transform, train_transform
 from options import getArgs
 from sklearn.model_selection import KFold
@@ -49,7 +48,7 @@ def accuracy(output, target, topk=(1,)):
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    return [correct[:k].reshape(-1).float().sum(0) * 100. / batch_size for k in topk]
+    return [correct[:k].reshape(-1).float().sum(0) / batch_size for k in topk]
 
 
 class ModelUpdater():
@@ -60,7 +59,7 @@ class ModelUpdater():
         self.optimizer = optimizer
         self.loss_fn = nn.CrossEntropyLoss()
 
-    def train_one_epoch(self, model, animator, epoch):
+    def train_one_epoch(self, model):
         model.train()
         num_batches = len(self.train_loader)
         metric = d2l.Accumulator(3)
@@ -80,10 +79,6 @@ class ModelUpdater():
             if self.args.verbose and (idx + 1) % 10 == 0:
                 print("{}/{} loss:{}  acc:{}".format(idx,
                       num_batches, train_l, train_acc))
-
-            if (idx + 1) % (num_batches // 5) == 0 or idx == num_batches - 1:
-                animator.add(epoch + (idx + 1) / num_batches,
-                             (train_acc * 100.0, train_l, None, None))
         return train_l, train_acc
 
     def validate(self, model, use_top5=False):
@@ -130,12 +125,14 @@ def train(args):
     args.device = d2l.try_gpu()
     num_classes = 176
 
-    leaves_train = LeavesData(mode='train', data_root=path.join(path.dirname(__file__),args.data_root),transform=train_transform)
-    #print(leaves_train[0])
+    leaves_train = LeavesData(mode='train', data_root=path.join(
+        path.dirname(__file__), args.data_root), transform=train_transform)
+    # print(leaves_train[0])
     kFold = KFold(n_splits=args.fold, shuffle=False)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
         print(f'Training for fold {fold}/{args.fold}...')
-        model_path = f'../models/fold={fold}-{args.ckpt_path}'
+        model_path = path.join(path.dirname(
+            __file__), f'../models/fold={fold}-{args.ckpt_path}')
         train_subsampler = SubsetRandomSampler(train_ids)
         val_subsampler = SubsetRandomSampler(val_ids)
         train_loader = DataLoader(
@@ -168,9 +165,8 @@ def train(args):
         updater = ModelUpdater(args, train_loader, val_loader, optimizer)
         current_epoch = 0
         best_acc = 0
-        if args.resume:
-            save_dict = torch.load(path.join(path.dirname(
-                __file__), model_path))
+        if args.resume and path.exists(model_path):
+            save_dict = torch.load(model_path)
             current_epoch = save_dict['current_epoch']
             model.module.load_state_dict(save_dict['weight'])
             print(
@@ -181,12 +177,11 @@ def train(args):
 
         best_weight = copy.deepcopy(model.module.state_dict())
         writer = SummaryWriter('./logs')
-        animator = Animator(xlabel='epoch', xlim=[1, args.epoch],
-                            legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
         for i in range(current_epoch, args.epoch):
             print("Epoch {}/{} training...".format(i, args.epoch))
             scheduler_warmup.step()
-            loss, acc = updater.train_one_epoch(model, animator, i)
+
+            loss, acc = updater.train_one_epoch(model)
             writer.add_scalar(f"fold={fold}-loss", loss, i)
             writer.add_scalar(f"fold={fold}-train_acc", acc, i)
             print("train loss:{} acc:{}".format(loss, acc))
@@ -196,7 +191,6 @@ def train(args):
                 print("acc:{} acc5:{}".format(acc, acc5))
                 writer.add_scalars(
                     f"fold={fold}-test_acc", {"top1": acc, "top5": acc5}, i)
-                animator.add(i + 1, (None, None, acc, acc5))
             # 如果eval_all的话，acc是验证集上的acc，否则是训练集上的acc
             if acc > best_acc:
                 best_acc = acc
@@ -208,8 +202,7 @@ def train(args):
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler_warmup.state_dict(),
                 }
-                torch.save(save_dict, path.join(path.dirname(
-                    __file__), model_path))
+                torch.save(save_dict, model_path)
             plt.savefig(path.join(path.dirname(__file__),
                         f'../figures/fold={fold}-epoch={i+1}.png'))
 
