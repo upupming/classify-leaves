@@ -5,3 +5,4 @@ dataset
 logs
 figures/*.png
 *-checkpoint.ipynb
+*.csv

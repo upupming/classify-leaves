@@ -1,3 +1,7 @@
+from genericpath import isfile
+from ntpath import join
+import os
+from os import listdir
 import traceback
 import sys
 import pandas as pd
@@ -90,12 +94,13 @@ if __name__ == "__main__":
     model = model.to(args.device)
     model_list = []
     try:
-        for fold in range(args.fold):
-            model_path = path.join(path.dirname(
-                __file__), f'../models/fold={fold}-{args.ckpt_path}')
-            if not path.exists(model_path):
-                continue
-            read_dict = torch.load(model_path)
+        model_dir = path.join(path.dirname(
+            __file__), f'../models/')
+        model_files = [join(model_dir, f) for f in os.listdir(model_dir) if(isfile(
+            join(model_dir, f)) and f.lower().endswith('.pth'))]
+
+        for file in model_files:
+            read_dict = torch.load(file)
             model.module.load_state_dict(read_dict['weight'])
             model_list.append(copy.deepcopy(model))
         print(f'已加载 {len(model_list)} 个模型')
