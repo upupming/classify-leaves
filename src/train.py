@@ -137,10 +137,10 @@ def train(args):
         val_subsampler = SubsetRandomSampler(val_ids)
         train_loader = DataLoader(
             leaves_train,
-            batch_size=args.batch_size, sampler=train_subsampler)
+            batch_size=args.batch_size, sampler=train_subsampler, num_workers=4)
         val_loader = DataLoader(
             leaves_train,
-            batch_size=args.batch_size, sampler=val_subsampler)
+            batch_size=args.batch_size, sampler=val_subsampler, num_workers=4)
 
         if args.model == 'seresnext101':
             model = se_resnext101_32x4d()
