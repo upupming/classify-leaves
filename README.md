@@ -59,3 +59,4 @@
 3. https://blog.csdn.net/u011622208/article/details/102485741
 4. https://github.com/Cadene/pretrained-models.pytorch
 5. https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
+6. https://github.com/CoinCheung/pytorch-loss/blob/master/label_smooth.py
