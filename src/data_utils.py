@@ -12,6 +12,7 @@ import os
 from os import path
 import matplotlib.pyplot as plt
 import random
+from d2l import torch as d2l
 
 from torchvision.transforms.transforms import RandomRotation, Resize
 
@@ -118,10 +119,10 @@ class TestDataset(Dataset):
     def __getitem__(self, index: int):
         img, img_name = self.raw_data[index]
         if self.transform_list is not None:
-            img_list=[]
+            img_list = []
             for trans in self.transform_list:
                 img_list.append(trans(image=img)['image'])
-            return img_list,img_name
+            return img_list, img_name
         return img, img_name
 
 
@@ -179,13 +180,19 @@ test_transform = val_transform = albu.Compose([
     ToTensorV2(),
 ])
 
-TTA_transform=[
-    albu.Compose([albu.Resize(224, 224),albu.Normalize(mean,std),ToTensorV2(),]),
-    albu.Compose([albu.Resize(224, 224),albu.HorizontalFlip(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
-    albu.Compose([albu.Resize(224, 224),albu.VerticalFlip(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
-    albu.Compose([albu.Resize(224, 224),albu.RandomBrightnessContrast(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
-    albu.Compose([albu.Resize(224, 224),albu.Perspective(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
-    albu.Compose([albu.Resize(224, 224),albu.HueSaturationValue(p=1),albu.Normalize(mean,std),ToTensorV2(),]),
+TTA_transform = [
+    albu.Compose(
+        [albu.Resize(224, 224), albu.Normalize(mean, std), ToTensorV2(), ]),
+    albu.Compose([albu.Resize(224, 224), albu.HorizontalFlip(
+        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
+    albu.Compose([albu.Resize(224, 224), albu.VerticalFlip(
+        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
+    albu.Compose([albu.Resize(224, 224), albu.RandomBrightnessContrast(
+        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
+    albu.Compose([albu.Resize(224, 224), albu.Perspective(
+        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
+    albu.Compose([albu.Resize(224, 224), albu.HueSaturationValue(
+        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
 ]
 
 
@@ -214,7 +221,15 @@ def load_leaves_data(batch_size, resize=None):
 
 
 if __name__ == "__main__":
-    test_data = LeavesData(path.join(path.dirname(
-        __file__), '../dataset/classify-leaves'), "test")
-    for idx, img in enumerate(test_data):
-        print(img.width)
+    # test_data = LeavesData(path.join(path.dirname(
+    #     __file__), '../dataset/classify-leaves'), "test")
+    # for idx, img in enumerate(test_data):
+    #     print(img.width)
+    leaves_train = LeavesData(mode='train', transform=train_transform)
+    batch_size = 128
+    train_iter = DataLoader(
+        leaves_train, batch_size, shuffle=False, num_workers=4)
+    timer = d2l.Timer()
+    for X, y in train_iter:
+        continue
+    print(f'读取一轮训练数据需要 {timer.stop():.2f} sec')
