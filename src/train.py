@@ -130,8 +130,8 @@ if __name__ == '__main__':
     args.device = d2l.try_gpu()
     num_classes = 176
 
-    leaves_train = LeavesData(mode='train', transform=train_transform)
-    print(leaves_train[0])
+    leaves_train = LeavesData(mode='train', data_root=path.join(path.dirname(__file__),args.data_root),transform=train_transform)
+    #print(leaves_train[0])
     kFold = KFold(n_splits=args.fold, shuffle=True)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
         print(f'Training for fold {fold}/{args.fold}...')
