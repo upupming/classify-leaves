@@ -1,2 +1,2 @@
 clean:
-	rm -rf figrues/*.png
+	rm -rf figrues/*.png models/*.pth

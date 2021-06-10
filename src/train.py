@@ -9,8 +9,9 @@ from d2l import torch as d2l
 from pretrainedmodels import se_resnext101_32x4d, se_resnext50_32x4d
 from torch.nn.modules.loss import CrossEntropyLoss
 from torch.utils.data import SubsetRandomSampler, DataLoader
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 from matplotlib import pyplot as plt
+from animator import Animator
 from data_utils import LeavesData, getData, test_transform, train_transform
 from options import getArgs
 from sklearn.model_selection import KFold
@@ -61,11 +62,11 @@ class ModelUpdater():
 
     def train_one_epoch(self, model, animator, epoch):
         model.train()
-        num_batches = len(train_loader)
+        num_batches = len(self.train_loader)
         metric = d2l.Accumulator(3)
         for idx, (imgs, labels) in enumerate(tqdm(self.train_loader)):
-            imgs = imgs.to(args.device)
-            labels = labels.to(args.device)
+            imgs = imgs.to(self.args.device)
+            labels = labels.to(self.args.device)
             self.optimizer.zero_grad()
             out = model(imgs)
             loss = self.loss_fn(out, labels)
@@ -94,8 +95,8 @@ class ModelUpdater():
             top5 = AverageMeter('Acc@5', ':6.2f')
         with torch.no_grad():
             for idx, (imgs, labels) in enumerate(self.val_loader):
-                imgs = imgs.to(args.device)
-                labels = labels.to(args.device)
+                imgs = imgs.to(self.args.device)
+                labels = labels.to(self.args.device)
                 out = model(imgs)
 
                 pred.extend((torch.argmax(out, 1)).cpu().numpy().tolist())
@@ -112,29 +113,29 @@ class ModelUpdater():
             return top1.avg, top5.avg
 
 
-def set_parameter_requires_grad(model:nn.Module, feature_extracting, num_classes):
-    model_children=list(model.children())
+def set_parameter_requires_grad(model: nn.Module, feature_extracting, num_classes):
+    model_children = list(model.children())
     if feature_extracting:
         for i in range(len(model_children)):
-            if i != 4 or i != len(model_children)-1:
-                layer=model_children[i]
-                #print(layer)
+            if i != 4 or i != len(model_children) - 1:
+                layer = model_children[i]
+                # print(layer)
                 for param in layer.parameters():
                     param.requires_grad = False
     num_ftrs = model.last_linear.in_features
     model.last_linear = nn.Linear(num_ftrs, num_classes)
 
 
-if __name__ == '__main__':
-    args = getArgs()
+def train(args):
     args.device = d2l.try_gpu()
     num_classes = 176
 
     leaves_train = LeavesData(mode='train', data_root=path.join(path.dirname(__file__),args.data_root),transform=train_transform)
     #print(leaves_train[0])
-    kFold = KFold(n_splits=args.fold, shuffle=True)
+    kFold = KFold(n_splits=args.fold, shuffle=False)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
         print(f'Training for fold {fold}/{args.fold}...')
+        model_path = f'../models/fold={fold}-{args.ckpt_path}'
         train_subsampler = SubsetRandomSampler(train_ids)
         val_subsampler = SubsetRandomSampler(val_ids)
         train_loader = DataLoader(
@@ -156,31 +157,33 @@ if __name__ == '__main__':
         # print(model.last_linear.weight.requires_grad)
 
         optimizer = optim.Adam(
-            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr)
+            filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=1e-3)
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer, args.epoch, 1e-5)
         scheduler_warmup = GradualWarmupScheduler(
             optimizer, multiplier=1, total_epoch=5, after_scheduler=scheduler)
 
-        current_epoch = 0
-        best_acc = 0
-        if args.resume:
-            save_dict = torch.load(path.join(path.dirname(__file__), f'../models/{args.ckpt_path}'))
-            current_epoch = save_dict['current_epoch']
-            model.load_state_dict(save_dict['weight'])
-            optimizer.load_state_dict(save_dict['optimizer'])
-            scheduler_warmup.load_state_dict(save_dict["scheduler"])
-            best_acc=save_dict["best_loss"]
-
         model = nn.DataParallel(model)
         model = model.to(args.device)
         updater = ModelUpdater(args, train_loader, val_loader, optimizer)
+        current_epoch = 0
+        best_acc = 0
+        if args.resume:
+            save_dict = torch.load(path.join(path.dirname(
+                __file__), model_path))
+            current_epoch = save_dict['current_epoch']
+            model.module.load_state_dict(save_dict['weight'])
+            print(
+                f'loaded model from {model_path} for resume training with current_epoch={current_epoch}')
+            optimizer.load_state_dict(save_dict['optimizer'])
+            scheduler_warmup.load_state_dict(save_dict["scheduler"])
+            best_acc = save_dict["best_acc"]
 
         best_weight = copy.deepcopy(model.module.state_dict())
         writer = SummaryWriter('./logs')
-        animator = d2l.Animator(xlabel='epoch', xlim=[1, args.epoch],
-                                legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
-        for i in range(current_epoch,args.epoch):
+        animator = Animator(xlabel='epoch', xlim=[1, args.epoch],
+                            legend=['train acc', 'train loss', 'test acc (top1)', 'test acc (top5)'])
+        for i in range(current_epoch, args.epoch):
             print("Epoch {}/{} training...".format(i, args.epoch))
             scheduler_warmup.step()
             loss, acc = updater.train_one_epoch(model, animator, i)
@@ -206,6 +209,11 @@ if __name__ == '__main__':
                     "scheduler": scheduler_warmup.state_dict(),
                 }
                 torch.save(save_dict, path.join(path.dirname(
-                    __file__), f'../models/fold={fold}-{args.ckpt_path}'))
+                    __file__), model_path))
             plt.savefig(path.join(path.dirname(__file__),
-                        f'../figures/epoch-{i+1}.png'))
+                        f'../figures/fold={fold}-epoch={i+1}.png'))
+
+
+if __name__ == '__main__':
+    args = getArgs()
+    train(args)

@@ -9,7 +9,7 @@ def getArgs():
                             default=0.1, help="the ratio of validation set")
     arg_parser.add_argument("--epoch", type=int, default=10,
                             help="The number of training epoches")
-    arg_parser.add_argument("--lr", type=float, default=0.01,
+    arg_parser.add_argument("--lr", type=float, default=2e-5,
                             help="The learning rate of optimizer")
     arg_parser.add_argument("--batch_size", type=int,
                             default=64, help="The batch size")
