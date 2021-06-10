@@ -61,3 +61,4 @@
 5. https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
 6. [TTA](https://mp.weixin.qq.com/s/rLSmHSTsQiqTulup6F3v7A)
 7. [伪标签（Pseudo-Labelling）](https://mp.weixin.qq.com/s/eRCNxHn4MEblRcXenKIBuA)
+8. https://github.com/CoinCheung/pytorch-loss/blob/master/label_smooth.py
