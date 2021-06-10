@@ -59,3 +59,5 @@
 3. https://blog.csdn.net/u011622208/article/details/102485741
 4. https://github.com/Cadene/pretrained-models.pytorch
 5. https://pytorch.org/tutorials/beginner/finetuning_torchvision_models_tutorial.html
+6. [TTA](https://mp.weixin.qq.com/s/rLSmHSTsQiqTulup6F3v7A)
+7. [伪标签（Pseudo-Labelling）](https://mp.weixin.qq.com/s/eRCNxHn4MEblRcXenKIBuA)

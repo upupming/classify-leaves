@@ -43,17 +43,18 @@ class ResultSaver():
             self.id_to_class)).to(self.args.device)
         for model in self.model_list:
             out += torch.softmax(model(imgs), dim=1)
-        return out.argmax(dim=1)
+        return out
 
     def start(self):
         for model in self.model_list:
             model.eval()
         with torch.no_grad():
             for idx, (imgs_list, img_names) in enumerate(tqdm(self.test_loader)):
-                pred_labels = torch.zeros(imgs.shape[0], len(self.id_to_class)).to(self.args.device)
+                pred_labels = torch.zeros(imgs_list[0].shape[0], len(
+                    self.id_to_class)).to(self.args.device)
                 for imgs in imgs_list:
                     pred_labels += self.pred_one_batch(imgs)
-                pred_labels=pred_labels.argmax(dim=1)
+                pred_labels = pred_labels.argmax(dim=1)
                 for i in range(len(imgs)):
                     self.ans = self.ans.append({
                         'image': img_names[i],
@@ -75,7 +76,7 @@ class ResultSaver():
         with torch.no_grad():
             for idx, (imgs, labels) in enumerate(self.train_loader):
                 labels = labels.to(self.args.device)
-                pred_labels = self.pred_one_batch(imgs, model)
+                pred_labels = self.pred_one_batch(imgs)
                 metric.add(d2l.accuracy(pred_labels, labels), len(labels))
                 print(
                     f'{idx+1}/{len(self.train_loader)} 当前训练集上 acc 为 {metric[0] / metric[1]}')
