@@ -131,7 +131,8 @@ def train(args):
     kFold = KFold(n_splits=args.fold, shuffle=False)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
         print(f'Training for fold {fold}/{args.fold}...')
-        model_path = f'../models/fold={fold}-{args.ckpt_path}'
+        model_path = path.join(path.dirname(
+            __file__), f'../models/fold={fold}-{args.ckpt_path}')
         train_subsampler = SubsetRandomSampler(train_ids)
         val_subsampler = SubsetRandomSampler(val_ids)
         train_loader = DataLoader(
@@ -164,9 +165,8 @@ def train(args):
         updater = ModelUpdater(args, train_loader, val_loader, optimizer)
         current_epoch = 0
         best_acc = 0
-        if args.resume:
-            save_dict = torch.load(path.join(path.dirname(
-                __file__), model_path))
+        if args.resume and path.exists(model_path):
+            save_dict = torch.load(model_path)
             current_epoch = save_dict['current_epoch']
             model.module.load_state_dict(save_dict['weight'])
             print(
@@ -202,8 +202,7 @@ def train(args):
                     "optimizer": optimizer.state_dict(),
                     "scheduler": scheduler_warmup.state_dict(),
                 }
-                torch.save(save_dict, path.join(path.dirname(
-                    __file__), model_path))
+                torch.save(save_dict, model_path)
             plt.savefig(path.join(path.dirname(__file__),
                         f'../figures/fold={fold}-epoch={i+1}.png'))
 

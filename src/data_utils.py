@@ -122,8 +122,8 @@ class TestDataset(Dataset):
         return img, img_name
 
 
-mean = [0.485 * 255.0, 0.456 * 255.0, 0.406 * 255.0]
-std = [0.229 * 255.0, 0.224 * 255.0, 0.225 * 255.0]
+mean = [0 * 255.0, 0 * 255.0, 0 * 255.0]
+std = [1, 1, 1]
 
 train_transform = albu.Compose([
     albu.Resize(224, 224),
