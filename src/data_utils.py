@@ -58,7 +58,7 @@ class LeavesData(Dataset):
             self.image_arr = np.asarray(self.data_info.iloc[0:, 0])
             # 第二列是图像的 label
             self.label_arr = np.asarray(self.data_info.iloc[0:, 1])
-            if self.test_high_conf_data_info:
+            if self.test_high_conf_data_info is not None:
                 self.image_arr = np.concatenate((self.image_arr, np.asarray(
                     self.test_high_conf_data_info.iloc[0:, 0])), axis=0)
                 self.label_arr = np.concatenate((self.label_arr, np.asarray(
