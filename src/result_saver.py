@@ -74,8 +74,11 @@ class ResultSaver():
                     }
                     self.ans = self.ans.append(
                         sample_pred_dict, ignore_index=True)
-                    if pred_label_prob[i] > args.test_conf_thre * len(self.model_list) * self.num_transform:
-                        self.ans_high_confidence = self.ans.append(
+
+                    avg_conf = pred_label_prob[i] / \
+                        (len(self.model_list) * self.num_transform)
+                    if avg_conf > args.test_conf_thre:
+                        self.ans_high_confidence = self.ans_high_confidence.append(
                             sample_pred_dict, ignore_index=True)
         self.ans.to_csv(
             path.join(

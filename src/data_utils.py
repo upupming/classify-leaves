@@ -35,6 +35,8 @@ class LeavesData(Dataset):
         self.data_root = data_root
         csv_path = os.path.join(data_root, mode + '.csv')
         train_csv_path = os.path.join(data_root, 'train.csv')
+        test_high_conf_csv_path = os.path.join(
+            data_root, 'test_high_confidence.csv')
         self.mode = mode
         self.transform = transform
 
@@ -42,6 +44,10 @@ class LeavesData(Dataset):
         # 利用pandas读取csv文件
         self.data_info = pd.read_csv(csv_path)  # header=None是去掉表头部分
         self.train_data_info = pd.read_csv(train_csv_path)
+        self.test_high_conf_data_info = None
+        if path.exists(test_high_conf_csv_path):
+            self.test_high_conf_data_info = pd.read_csv(
+                test_high_conf_csv_path)
         # 计算 length
         self.data_len = len(self.data_info.index)
 
@@ -52,6 +58,11 @@ class LeavesData(Dataset):
             self.image_arr = np.asarray(self.data_info.iloc[0:, 0])
             # 第二列是图像的 label
             self.label_arr = np.asarray(self.data_info.iloc[0:, 1])
+            if self.test_high_conf_data_info:
+                self.image_arr = np.concatenate((self.image_arr, np.asarray(
+                    self.test_high_conf_data_info.iloc[0:, 0])), axis=0)
+                self.label_arr = np.concatenate((self.label_arr, np.asarray(
+                    self.test_high_conf_data_info.iloc[0:, 1])), axis=0)
         elif mode == 'test':
             self.image_arr = np.asarray(self.data_info.iloc[0:, 0])
 
