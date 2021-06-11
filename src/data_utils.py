@@ -196,10 +196,10 @@ TTA_transform = [
         p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
     albu.Compose([albu.Resize(224, 224), albu.RandomBrightnessContrast(
         p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
-    albu.Compose([albu.Resize(224, 224), albu.Perspective(
-        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
-    albu.Compose([albu.Resize(224, 224), albu.HueSaturationValue(
-        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
+    # albu.Compose([albu.Resize(224, 224), albu.Perspective(
+    #     p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
+    # albu.Compose([albu.Resize(224, 224), albu.HueSaturationValue(
+    #     p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
 ]
 
 
@@ -214,7 +214,7 @@ def getData(args, mode='train'):
         return train_data, val_data
     else:
         test_data = TestDataset(args,
-            all_data, TTA_transform if args.tta_transform else test_transform)
+                                all_data, TTA_transform if args.tta_transform else test_transform)
         return test_data
 
 

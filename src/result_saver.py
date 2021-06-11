@@ -25,9 +25,9 @@ class ResultSaver():
     def __init__(self, args, model_list) -> None:
         self.args = args
         self.model_list = model_list
-        test_data = getData(args, mode='test')
-        self.class_to_id = test_data.raw_data.class_to_id
-        self.id_to_class = test_data.raw_data.id_to_class
+        self.test_data = getData(args, mode='test')
+        self.class_to_id = self.test_data.raw_data.class_to_id
+        self.id_to_class = self.test_data.raw_data.id_to_class
         # print(len(test_data))
         # print(test_data[0][0].shape, test_data[0][1]
 
@@ -43,7 +43,7 @@ class ResultSaver():
         column_names = ["image", "label"]
         self.ans = pd.DataFrame(columns=column_names)
         self.test_loader = dataloader.DataLoader(
-            test_data, args.batch_size, shuffle=False)
+            self.test_data, args.batch_size, shuffle=False)
 
         for model in self.model_list:
             model.eval()
