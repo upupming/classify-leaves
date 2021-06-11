@@ -14,6 +14,8 @@ from matplotlib import pyplot as plt
 from data_utils import LeavesData, getData, test_transform, train_transform
 from options import getArgs
 from sklearn.model_selection import KFold
+from label_smooth import LabelSmoothSoftmaxCEV2
+
 
 
 class AverageMeter(object):
@@ -57,7 +59,8 @@ class ModelUpdater():
         self.val_loader = val_loader
         self.args = args
         self.optimizer = optimizer
-        self.loss_fn = nn.CrossEntropyLoss()
+        #self.loss_fn = nn.CrossEntropyLoss()
+        self.loss_fn=LabelSmoothSoftmaxCEV2()
 
     def train_one_epoch(self, model):
         model.train()

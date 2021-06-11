@@ -121,53 +121,7 @@ class LabelSmoothSoftmaxCEV2(nn.Module):
 
 ##
 # version 3: implement wit cpp/cuda to save memory and accelerate
-import lsr_cpp
-class LSRCrossEntropyFunctionV3(torch.autograd.Function):
-    '''
-    use cpp/cuda to accelerate and shrink memory usage
-    '''
-    @staticmethod
-    @amp.custom_fwd(cast_inputs=torch.float32)
-    def forward(ctx, logits, labels, lb_smooth, lb_ignore):
-        losses = lsr_cpp.lsr_forward(logits, labels, lb_ignore, lb_smooth)
 
-        ctx.variables = logits, labels, lb_ignore, lb_smooth
-        return losses
-
-    @staticmethod
-    @amp.custom_bwd
-    def backward(ctx, grad_output):
-        logits, labels, lb_ignore, lb_smooth = ctx.variables
-
-        grad = lsr_cpp.lsr_backward(logits, labels, lb_ignore, lb_smooth)
-        grad.mul_(grad_output.unsqueeze(1))
-        return grad, None, None, None
-
-
-class LabelSmoothSoftmaxCEV3(nn.Module):
-
-    def __init__(self, lb_smooth=0.1, reduction='mean', ignore_index=-100):
-        super(LabelSmoothSoftmaxCEV3, self).__init__()
-        self.lb_smooth = lb_smooth
-        self.reduction = reduction
-        self.lb_ignore = ignore_index
-
-    def forward(self, logits, labels):
-        '''
-        Same usage method as nn.CrossEntropyLoss:
-            >>> criteria = LabelSmoothSoftmaxCEV3()
-            >>> logits = torch.randn(8, 19, 384, 384) # nchw, float/half
-            >>> lbs = torch.randint(0, 19, (8, 384, 384)) # nhw, int64_t
-            >>> loss = criteria(logits, lbs)
-        '''
-        losses = LSRCrossEntropyFunctionV3.apply(
-                logits, labels, self.lb_smooth, self.lb_ignore)
-        if self.reduction == 'sum':
-            losses = losses.sum()
-        elif self.reduction == 'mean':
-            n_valid = (labels != self.lb_ignore).sum()
-            losses = losses.sum() / n_valid
-        return losses
 
 
 if __name__ == '__main__':

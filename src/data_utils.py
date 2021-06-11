@@ -126,8 +126,8 @@ class TestDataset(Dataset):
         return img, img_name
 
 
-mean = [0 * 255.0, 0 * 255.0, 0 * 255.0]
-std = [1, 1, 1]
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
 
 train_transform = albu.Compose([
     albu.Resize(224, 224),
@@ -141,8 +141,8 @@ train_transform = albu.Compose([
     #                  always_apply=True, border_mode=0),
     # albu.RandomCrop(height=224, width=224, always_apply=True),
 
-    # albu.GaussNoise(p=0.2),
-    # albu.Perspective(p=0.5),
+     albu.GaussNoise(p=0.2),
+     albu.Perspective(p=0.5),
 
     # albu.OneOf(
     #     [
