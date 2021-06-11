@@ -144,6 +144,8 @@ class TestDataset(Dataset):
         return img, img_name
 
 
+# mean = [0, 0, 0]
+# std = [1, 1, 1]
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
 
@@ -162,14 +164,14 @@ train_transform = albu.Compose([
     albu.GaussNoise(p=0.2),
     albu.Perspective(p=0.5),
 
-    albu.OneOf(
-        [
-            albu.CLAHE(p=1),
-            albu.RandomBrightnessContrast(p=1),
-            albu.RandomGamma(p=1),
-        ],
-        p=0.9,
-    ),
+    # albu.OneOf(
+    #     [
+    #         albu.CLAHE(p=1),
+    #         albu.RandomBrightnessContrast(p=1),
+    #         albu.RandomGamma(p=1),
+    #     ],
+    #     p=0.9,
+    # ),
 
     # albu.OneOf(
     #     [

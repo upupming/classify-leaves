@@ -1,3 +1,4 @@
+import numpy as np
 from genericpath import isfile
 from ntpath import join
 import os
@@ -5,6 +6,7 @@ from os import listdir
 import traceback
 import sys
 import pandas as pd
+from pandas.core.frame import DataFrame
 from pretrainedmodels.models.senet import se_resnext50_32x4d
 from data_utils import getData
 from options import getArgs
@@ -38,6 +40,23 @@ class ResultSaver():
         for model in self.model_list:
             out += torch.softmax(model(imgs), dim=1)
         return out
+
+    def compare_acc(self, target: DataFrame, test: DataFrame):
+        assert len(target) == len(
+            test), 'Test and Target should have same # rows'
+        target_order = np.asarray(target.iloc[0:, 0]).argsort()
+        test_order = np.asarray(test.iloc[0:, 0]).argsort()
+        metric = d2l.Accumulator(2)
+        for i in range(len(target)):
+            assert target.iloc[target_order[i]][0] ==\
+                test.iloc[test_order[i]][0],\
+                'Test and Target should have same sample names'
+            metric.add(
+                target.iloc[target_order[i]][1]
+                == test.iloc[test_order[i]][1],
+                1
+            )
+        return metric[0] / metric[1]
 
     def start(self):
         column_names = ["image", "label"]
@@ -86,6 +105,12 @@ class ResultSaver():
         self.ans_high_confidence.to_csv(
             path.join(
                 path.dirname(__file__), '../dataset/classify-leaves', 'test_high_confidence.csv'), index=False)
+
+        sub_976_csv_path = path.join(
+            path.dirname(__file__), '../dataset/classify-leaves', 'submission_0.97613.csv')
+        self.sub_976 = pd.read_csv(sub_976_csv_path)
+        print('和 sub_976 相比，相似度为（较小的话说明模型有问题）：',
+              self.compare_acc(self.sub_976, self.ans))
 
     def cal_acc_on_train(self):
         leaves_train = LeavesData(mode='train', data_root=path.join(
