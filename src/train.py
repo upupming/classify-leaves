@@ -17,7 +17,6 @@ from sklearn.model_selection import KFold
 from label_smooth import LabelSmoothSoftmaxCEV2
 
 
-
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
@@ -60,7 +59,7 @@ class ModelUpdater():
         self.args = args
         self.optimizer = optimizer
         #self.loss_fn = nn.CrossEntropyLoss()
-        self.loss_fn=LabelSmoothSoftmaxCEV2()
+        self.loss_fn = LabelSmoothSoftmaxCEV2()
 
     def train_one_epoch(self, model):
         model.train()
