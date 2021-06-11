@@ -42,33 +42,47 @@ class ResultSaver():
     def start(self):
         column_names = ["image", "label"]
         self.ans = pd.DataFrame(columns=column_names)
+        self.ans_high_confidence = pd.DataFrame(columns=column_names)
         self.test_loader = dataloader.DataLoader(
             self.test_data, args.batch_size, shuffle=False)
 
         for model in self.model_list:
             model.eval()
         with torch.no_grad():
-            for idx, (imgs_list, img_names) in enumerate(tqdm(self.test_loader)):
+            for idx, (X, img_names) in enumerate(tqdm(self.test_loader)):
                 # TTA 预测
-                if type(imgs_list) == list:
-                    pred_labels = torch.zeros(imgs_list[0].shape[0], len(
+                if type(X) == list:
+                    imgs_list = X
+                    self.num_transform = len(imgs_list)
+                    pred_probs = torch.zeros(imgs_list[0].shape[0], len(
                         self.id_to_class)).to(self.args.device)
                     for imgs in imgs_list:
-                        pred_labels += self.pred_one_batch(imgs)
-                    pred_labels = pred_labels.argmax(dim=1)
+                        pred_probs += self.pred_one_batch(imgs)
+                    pred_labels = pred_probs.argmax(dim=1)
                 # 单幅图预测
                 else:
-                    imgs = imgs_list
-                    pred_labels = self.pred_one_batch(imgs)
-                    pred_labels = pred_labels.argmax(dim=1)
+                    imgs = X
+                    self.num_transform = 1
+                    pred_probs = self.pred_one_batch(imgs)
+                    pred_labels = pred_probs.argmax(dim=1)
+                pred_label_prob = pred_probs[range(
+                    len(pred_probs)), pred_labels]
                 for i in range(len(imgs)):
-                    self.ans = self.ans.append({
+                    sample_pred_dict = {
                         'image': img_names[i],
                         'label': self.id_to_class[pred_labels[i].item()]
-                    }, ignore_index=True)
+                    }
+                    self.ans = self.ans.append(
+                        sample_pred_dict, ignore_index=True)
+                    if pred_label_prob[i] > args.test_conf_thre * len(self.model_list) * self.num_transform:
+                        self.ans_high_confidence = self.ans.append(
+                            sample_pred_dict, ignore_index=True)
         self.ans.to_csv(
             path.join(
                 path.dirname(__file__), '../', 'submission.csv'), index=False)
+        self.ans_high_confidence.to_csv(
+            path.join(
+                path.dirname(__file__), '../dataset/classify-leaves', 'test_high_confidence.csv'), index=False)
 
     def cal_acc_on_train(self):
         leaves_train = LeavesData(mode='train', data_root=path.join(

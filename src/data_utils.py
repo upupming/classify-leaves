@@ -148,17 +148,17 @@ train_transform = albu.Compose([
     #                  always_apply=True, border_mode=0),
     # albu.RandomCrop(height=224, width=224, always_apply=True),
 
-     albu.GaussNoise(p=0.2),
-     albu.Perspective(p=0.5),
+    albu.GaussNoise(p=0.2),
+    albu.Perspective(p=0.5),
 
-    # albu.OneOf(
-    #     [
-    #         albu.CLAHE(p=1),
-    #         albu.RandomBrightnessContrast(p=1),
-    #         albu.RandomGamma(p=1),
-    #     ],
-    #     p=0.9,
-    # ),
+    albu.OneOf(
+        [
+            albu.CLAHE(p=1),
+            albu.RandomBrightnessContrast(p=1),
+            albu.RandomGamma(p=1),
+        ],
+        p=0.9,
+    ),
 
     # albu.OneOf(
     #     [
