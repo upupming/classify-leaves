@@ -130,7 +130,7 @@ def train(args):
     leaves_train = LeavesData(mode='train', data_root=path.join(
         path.dirname(__file__), args.data_root), transform=train_transform)
     leaves_train_no_trans = LeavesData(mode='train', data_root=path.join(
-        path.dirname(__file__), args.data_root), transform=None)
+        path.dirname(__file__), args.data_root), transform=test_transform)
     # print(leaves_train[0])
     kFold = KFold(n_splits=args.fold, shuffle=False)
     for fold, (train_ids, val_ids) in enumerate(kFold.split(leaves_train)):
