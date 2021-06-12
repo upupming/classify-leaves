@@ -102,9 +102,10 @@ class ResultSaver():
         self.ans.to_csv(
             path.join(
                 path.dirname(__file__), '../', 'submission.csv'), index=False)
-        self.ans_high_confidence.to_csv(
-            path.join(
-                path.dirname(__file__), '../dataset/classify-leaves', 'test_high_confidence.csv'), index=False)
+        if self.args.save_test_high_conf:
+            self.ans_high_confidence.to_csv(
+                path.join(
+                    path.dirname(__file__), '../dataset/classify-leaves', 'test_high_confidence.csv'), index=False)
 
         sub_976_csv_path = path.join(
             path.dirname(__file__), '../dataset/classify-leaves', 'submission_0.97613.csv')

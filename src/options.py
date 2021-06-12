@@ -33,6 +33,8 @@ def getArgs():
                             help="Get result on train dataset")
     arg_parser.add_argument("--tta_transform", action="store_true",
                             help="Use TTA transform on test dataset")
+    arg_parser.add_argument("--save_test_high_conf", action="store_true",
+                            help="Save high confidence test prediction to csv for next training")
     arg_parser.add_argument("--test_conf_thre", type=float, default=0.9,
                             help="High confidence threshold for a test prediction")
     args = arg_parser.parse_args()
