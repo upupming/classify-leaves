@@ -207,8 +207,8 @@ TTA_transform = [
         p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
     albu.Compose([albu.Resize(224, 224), albu.VerticalFlip(
         p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
-    albu.Compose([albu.Resize(224, 224), albu.RandomBrightnessContrast(
-        p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
+    # albu.Compose([albu.Resize(224, 224), albu.RandomBrightnessContrast(
+    #     p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
     # albu.Compose([albu.Resize(224, 224), albu.Perspective(
     #     p=1), albu.Normalize(mean, std), ToTensorV2(), ]),
     # albu.Compose([albu.Resize(224, 224), albu.HueSaturationValue(
