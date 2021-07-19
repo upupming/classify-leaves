@@ -6,3 +6,4 @@ logs
 figures/*.png
 *-checkpoint.ipynb
 *.csv
+*.zip

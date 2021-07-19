@@ -1,5 +1,8 @@
 # Classify Leaves
 
+- Final rank: 25
+- Category Accuracy: 0.98272
+
 目录结构:
 
 ```bash
